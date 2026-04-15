@@ -1,0 +1,56 @@
+{
+  "clean": {
+    "precision": 0.9648,
+    "recall": 0.853,
+    "f1": 0.9041,
+    "iou": 0.8271
+  },
+  "gaussian_noise_mild": {
+    "precision": 0.9236,
+    "recall": 0.9054,
+    "f1": 0.9142,
+    "iou": 0.843
+  },
+  "gaussian_noise_strong": {
+    "precision": 0.8521,
+    "recall": 0.9239,
+    "f1": 0.8864,
+    "iou": 0.7975
+  },
+  "blur_mild": {
+    "precision": 0.9774,
+    "recall": 0.7793,
+    "f1": 0.8642,
+    "iou": 0.765
+  },
+  "blur_strong": {
+    "precision": 0.9736,
+    "recall": 0.7733,
+    "f1": 0.8586,
+    "iou": 0.7567
+  },
+  "low_brightness": {
+    "precision": 0.9352,
+    "recall": 0.9099,
+    "f1": 0.9221,
+    "iou": 0.8563
+  },
+  "low_contrast": {
+    "precision": 0.9033,
+    "recall": 0.9429,
+    "f1": 0.9226,
+    "iou": 0.8569
+  },
+  "occlusion": {
+    "precision": 0.9119,
+    "recall": 0.8471,
+    "f1": 0.8779,
+    "iou": 0.785
+  },
+  "jpeg_compression": {
+    "precision": 0.9222,
+    "recall": 0.725,
+    "f1": 0.8078,
+    "iou": 0.6847
+  }
+}

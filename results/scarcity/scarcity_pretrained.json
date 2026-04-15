@@ -1,0 +1,49 @@
+{
+  "args": {
+    "data_root": "./EWS-Dataset",
+    "model": "pretrained",
+    "output_dir": "./results/scarcity",
+    "epochs": 30,
+    "batch_size": 8,
+    "lr": 0.0001,
+    "loss": "focal_dice",
+    "label_noise": 0.0,
+    "image_size": 350,
+    "num_workers": 2,
+    "seed": 42
+  },
+  "results": {
+    "25%": {
+      "precision": 0.6057,
+      "recall": 0.1655,
+      "f1": 0.2577,
+      "iou": 0.1487,
+      "train_images": 35,
+      "time_s": 28.6
+    },
+    "50%": {
+      "precision": 0.9565,
+      "recall": 0.9359,
+      "f1": 0.946,
+      "iou": 0.8976,
+      "train_images": 71,
+      "time_s": 38.4
+    },
+    "75%": {
+      "precision": 0.9644,
+      "recall": 0.9074,
+      "f1": 0.935,
+      "iou": 0.878,
+      "train_images": 106,
+      "time_s": 57.2
+    },
+    "100%": {
+      "precision": 0.9227,
+      "recall": 0.8519,
+      "f1": 0.8858,
+      "iou": 0.795,
+      "train_images": 142,
+      "time_s": 63.7
+    }
+  }
+}

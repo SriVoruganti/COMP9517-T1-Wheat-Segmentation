@@ -1,0 +1,19 @@
+# Model checkpoints (too large for git)
+*.pth
+
+# Dataset
+EWS-Dataset/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+*.egg-info/
+
+# PBS logs
+*.o*
+*.e*
+.DS_Store
+EWS-Dataset.zip
+*.pbs

@@ -1,0 +1,16 @@
+{
+  "no_tta": {
+    "precision": 0.9648,
+    "recall": 0.853,
+    "f1": 0.9041,
+    "iou": 0.8271,
+    "avg_inference_time_ms": 105.1
+  },
+  "tta": {
+    "precision": 0.9697,
+    "recall": 0.8612,
+    "f1": 0.9107,
+    "iou": 0.8383,
+    "avg_inference_time_ms": 741.29
+  }
+}
