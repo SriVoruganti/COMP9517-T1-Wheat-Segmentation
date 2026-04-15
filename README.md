@@ -1,19 +1,18 @@
-# 🌾 Wheat Crop Segmentation — Deep Learning
+# 🌾 Wheat Crop Segmentation
 
-> UNSW COMP9517 Group Project 2026 T1 — Deep Learning Component  
+> UNSW COMP9517 Group Project 2026 T1  
 > **EWS (Eschikon Wheat Segmentation) Dataset**
 
 ---
 
 ## 📋 Overview
 
-This module implements deep learning-based binary segmentation of wheat crops from field images. Given an RGB image, the model produces a binary mask classifying every pixel as either **wheat** or **soil**.
+This project implements binary segmentation of wheat crops from field images using two approaches:
 
-Two architectures are developed and compared:
-1. **Vanilla U-Net** — trained from scratch with a standard encoder-decoder structure
-2. **Pretrained U-Net** — ResNet-34 ImageNet encoder + custom decoder with two-phase training
+- **Classical CV** — HSV colour thresholding with morphological post-processing (no training required)
+- **Deep Learning** — two U-Net variants trained on the EWS dataset
 
-Both are evaluated under standard conditions, with Test-Time Augmentation (TTA), and across robustness and data scarcity experiments.
+Given an RGB image, each method produces a binary mask classifying every pixel as either **wheat** or **soil**.
 
 ---
 
@@ -22,31 +21,126 @@ Both are evaluated under standard conditions, with Test-Time Augmentation (TTA),
 ```
 wheat-segmentation/
 ├── data/
-│   ├── dataset.py            # EWSDataset loader with subset & label-noise support
-│   └── distortions.py        # Synthetic distortions for robustness testing
+│   ├── dataset.py              # EWSDataset loader with subset & label-noise support
+│   └── distortions.py          # Synthetic distortions for robustness testing
 ├── models/
-│   ├── unet.py               # Vanilla U-Net (from scratch)
-│   ├── unet_pretrained.py    # U-Net with pretrained ResNet-34 encoder
-│   └── losses.py             # BCE, Dice, Focal, Tversky, Combo, FocalDice
+│   ├── unet.py                 # Vanilla U-Net (from scratch)
+│   ├── unet_pretrained.py      # U-Net with pretrained ResNet-34 encoder
+│   └── losses.py               # BCE, Dice, Focal, Tversky, Combo, FocalDice
 ├── utils/
-│   ├── metrics.py            # Precision, Recall, F1, IoU
-│   ├── tta.py                # Test-Time Augmentation (6-fold)
-│   └── visualise.py          # Prediction grids, failure analysis, training curves
+│   ├── metrics.py              # Precision, Recall, F1, IoU
+│   ├── tta.py                  # Test-Time Augmentation (6-fold)
+│   └── visualise.py            # Prediction grids, failure analysis, training curves
 ├── experiments/
-│   ├── robustness_eval.py    # Evaluate under 9 image distortions
-│   └── data_scarcity.py      # Train with 25/50/75/100% data + label noise
+│   ├── robustness_eval.py      # Evaluate under 9 image distortions
+│   └── data_scarcity.py        # Train with 25/50/75/100% data + label noise
 ├── results/
-│   ├── figures/              # Prediction grids, failure analysis, training curves
-│   ├── robustness/           # Robustness experiment results
-│   ├── scarcity/             # Data scarcity experiment results
-│   ├── pretrained_focal_dice/# Pretrained U-Net training history
-│   ├── unet_combo/           # Vanilla U-Net training history
+│   ├── figures/                # Prediction grids, failure analysis, training curves
+│   ├── robustness/             # Robustness experiment results
+│   ├── scarcity/               # Data scarcity experiment results
+│   ├── pretrained_focal_dice/  # Pretrained U-Net training history
+│   ├── unet_combo/             # Vanilla U-Net training history
 │   ├── test_metrics_pretrained.json
 │   └── test_metrics_unet.json
-├── train.py                  # Main training script
-├── evaluate.py               # Test set evaluation with TTA + failure analysis
+├── meanshift_segment.py        # Classical HSV segmentation baseline
+├── train.py                    # Main deep learning training script
+├── evaluate.py                 # Test set evaluation with TTA + failure analysis
 └── requirements.txt
 ```
+
+---
+
+## 🌿 Classical Segmentation — HSV Colour Thresholding (Baseline)
+
+A training-free classical baseline using **HSV colour thresholding** and **morphological post-processing**.
+
+### Method
+
+| Step | Description |
+|---|---|
+| **1. HSV conversion** | RGB → HSV for better robustness to lighting variation |
+| **2. Colour thresholding** | Isolate wheat green/yellow tones (`H: 25–95`, `S: 35–255`, `V: 35–255`) |
+| **3. Morphological opening** | Remove small noise specks in soil regions |
+| **4. Morphological closing** | Fill small holes within wheat leaves |
+| **5. Mask inversion** | Align with ground truth convention (`1 = soil`, `0 = wheat`) |
+
+### Visualisation
+
+> Each result shows: **Original Image | Ground Truth Mask | Predicted Mask (with IoU score)**
+
+![HSV Segmentation Result](results/figures/meanshift_result.png)
+
+### Usage
+
+```bash
+python meanshift_segment.py \
+    --data_root ./EWS-Dataset \
+    --split train \
+    --index 0 \
+    --save results/figures/meanshift_result.png
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `--data_root` | `./EWS-Dataset` | Root directory of the EWS dataset |
+| `--split` | `train` | Dataset split (`train` / `val` / `test`) |
+| `--index` | `0` | Index of the image to process |
+| `--save` | _(display)_ | Optional path to save the visualisation |
+
+### Notes
+
+- No training required — runs immediately on any image.
+- Performance is sensitive to lighting; HSV thresholds may need tuning for heavy shadows or overexposure.
+- Serves as a lightweight baseline to compare against the U-Net models.
+
+---
+
+## 🧠 Deep Learning — U-Net Models
+
+Two architectures trained and compared on the EWS dataset.
+
+### Architecture 1 — Vanilla U-Net
+
+Standard encoder-decoder with skip connections:
+- **Encoder:** 4× (DoubleConv + MaxPool) — channels: 3 → 64 → 128 → 256 → 512
+- **Bottleneck:** DoubleConv at 1024 channels
+- **Decoder:** 4× (TransposeConv + skip concat + DoubleConv)
+- **Head:** 1×1 Conv → binary logit
+- BatchNorm + Spatial Dropout (p=0.1) throughout
+- **Loss:** BCE + Dice (Combo, α=0.5)
+
+### Architecture 2 — Pretrained U-Net
+
+ResNet-34 encoder pretrained on ImageNet:
+- **Encoder stages:** stem (64ch) → layer1 (64ch) → layer2 (128ch) → layer3 (256ch) → layer4 (512ch)
+- **Decoder:** 4× DecoderBlock with skip connections from ResNet stages
+- **Two-phase training:**
+  - Phase 1 (10 epochs): encoder frozen, LR = 1e-4
+  - Phase 2 (30 epochs): full fine-tune, LR = 1e-5
+- **Loss:** Focal + Dice (FocalDice, α=0.5, γ=2.0)
+
+### Loss Functions
+
+| Loss | Use Case |
+|---|---|
+| **Combo** (BCE + Dice) | Reliable baseline |
+| **FocalDice** (Focal + Dice) | Class imbalance + boundary precision |
+| **Tversky** | Maximise recall for thin structures |
+
+### Data Augmentation
+
+Applied during training only:
+
+| Type | Transforms |
+|---|---|
+| **Geometric** | HFlip, VFlip, Rot90, ShiftScaleRotate, ElasticTransform, GridDistortion |
+| **Photometric** | ColorJitter, RandomGamma, GaussianBlur, GaussNoise, ISONoise |
+| **Occlusion** | CoarseDropout (random patch blackout) |
+| **Normalisation** | ImageNet mean/std (0.485, 0.456, 0.406) |
+
+### Test-Time Augmentation (TTA)
+
+6-fold TTA at inference — original + hflip + vflip + rot90 + rot180 + rot270. Sigmoid probability maps are averaged before thresholding at 0.5.
 
 ---
 
@@ -73,7 +167,7 @@ wheat-segmentation/
 
 ### Prediction Examples — Pretrained U-Net
 
-> Each row: **Input Image | Ground Truth | Prediction | Error Map**
+> Each row: **Input Image | Ground Truth | Prediction | Error Map**  
 > Error map: White = True Positive, Red = False Positive, Blue = False Negative
 
 ![Pretrained U-Net Predictions](results/figures/predictions_pretrained.png)
@@ -144,53 +238,6 @@ The model was trained with varying fractions of the training set (30 epochs each
 
 ---
 
-## 🧠 Method Details
-
-### Architecture 1 — Vanilla U-Net
-
-Standard encoder-decoder with skip connections:
-- **Encoder:** 4× (DoubleConv + MaxPool) — channels: 3 → 64 → 128 → 256 → 512
-- **Bottleneck:** DoubleConv at 1024 channels
-- **Decoder:** 4× (TransposeConv + skip concat + DoubleConv)
-- **Head:** 1×1 Conv → binary logit
-- BatchNorm + Spatial Dropout (p=0.1) throughout
-- **Loss:** BCE + Dice (Combo, α=0.5)
-
-### Architecture 2 — Pretrained U-Net
-
-ResNet-34 encoder pretrained on ImageNet:
-- **Encoder stages:** stem (64ch) → layer1 (64ch) → layer2 (128ch) → layer3 (256ch) → layer4 (512ch)
-- **Decoder:** 4× DecoderBlock with skip connections from ResNet stages
-- **Two-phase training:**
-  - Phase 1 (10 epochs): encoder frozen, LR = 1e-4
-  - Phase 2 (30 epochs): full fine-tune, LR = 1e-5
-- **Loss:** Focal + Dice (FocalDice, α=0.5, γ=2.0)
-
-### Loss Functions
-
-| Loss | Use Case |
-|---|---|
-| **Combo** (BCE + Dice) | Reliable baseline |
-| **FocalDice** (Focal + Dice) | Class imbalance + boundary precision |
-| **Tversky** | Maximise recall for thin structures |
-
-### Data Augmentation
-
-Applied during training only:
-
-| Type | Transforms |
-|---|---|
-| **Geometric** | HFlip, VFlip, Rot90, ShiftScaleRotate, ElasticTransform, GridDistortion |
-| **Photometric** | ColorJitter, RandomGamma, GaussianBlur, GaussNoise, ISONoise |
-| **Occlusion** | CoarseDropout (random patch blackout) |
-| **Normalisation** | ImageNet mean/std (0.485, 0.456, 0.406) |
-
-### Test-Time Augmentation (TTA)
-
-6-fold TTA at inference — original + hflip + vflip + rot90 + rot180 + rot270. Sigmoid probability maps are averaged before thresholding at 0.5.
-
----
-
 ## ⚙️ Setup & Usage
 
 ### Installation
@@ -210,7 +257,17 @@ EWS-Dataset/
 
 > ⚠️ Never mix train/val/test splits. Test set used only for final evaluation.
 
-### Training
+### Classical Baseline
+
+```bash
+python meanshift_segment.py \
+    --data_root ./EWS-Dataset \
+    --split test \
+    --index 0 \
+    --save results/figures/meanshift_result.png
+```
+
+### Training (Deep Learning)
 
 ```bash
 # Pretrained U-Net
@@ -268,8 +325,9 @@ python experiments/data_scarcity.py \
 |---|---|
 | PyTorch + torchvision | Training framework + ResNet-34 pretrained weights |
 | albumentations | Augmentation pipelines |
-| OpenCV | Distortion simulation |
+| OpenCV | Classical segmentation + distortion simulation |
 | matplotlib | Result visualisation |
+| numpy | Numerical operations |
 
 All code is original group work. ResNet-34 weights sourced from torchvision (ImageNet).
 
