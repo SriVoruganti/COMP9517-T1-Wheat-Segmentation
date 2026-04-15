@@ -61,23 +61,31 @@ def preprocess_folders(root: str, split: str):
             shutil.move(file_path, dest)
 
 
-def _load_file_lists(root, split, subset_frac, seed):
-    """Shared helper to load and optionally subset image/mask file lists."""
+
+def _load_file_lists(root, split, subset_frac=1.0, seed=0):
     image_dir = os.path.join(root, split, "images")
     mask_dir  = os.path.join(root, split, "masks")
 
-    images = sorted(os.listdir(image_dir))
-    masks  = sorted(os.listdir(mask_dir))
-    assert len(images) == len(masks), (
-        f"Mismatch: {len(images)} images vs {len(masks)} masks"
-    )
+    images = sorted([f for f in os.listdir(image_dir) if f.lower().endswith(".png")])
+    masks  = sorted([f for f in os.listdir(mask_dir)  if f.lower().endswith(".png")])
 
-    if subset_frac < 1.0:
-        rng = random.Random(seed)
-        n   = max(1, int(len(images) * subset_frac))
-        idx = rng.sample(range(len(images)), n)
-        images = [images[i] for i in sorted(idx)]
-        masks  = [masks[i]  for i in sorted(idx)]
+    mask_set = set(masks)
+    paired_images, paired_masks = [], []
+    for img in images:
+        m = img[:-4] + "_mask.png"
+        if m in mask_set:
+            paired_images.append(img)
+            paired_masks.append(m)
+        else:
+            print(f"WARNING: missing mask for image: {img}")
+
+    image_set = set(images)
+    extra_masks = [m for m in masks if m.replace("_mask.png", ".png") not in image_set]
+    if extra_masks:
+        print("WARNING: masks with no matching image (first 10):", extra_masks[:10])
+
+    images, masks = paired_images, paired_masks
+    assert len(images) == len(masks), f"Mismatch after pairing: {len(images)} vs {len(masks)}"
 
     return image_dir, mask_dir, images, masks
 
@@ -235,8 +243,11 @@ class EWSDatasetRF:
             mask_path = os.path.join(self.mask_dir,  mask_file)
 
             image = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB).astype(np.float32)
-            mask  = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE).astype(np.float32)
-            mask  = (mask > 127).astype(np.float32)
+            mask = cv2.imread(mask_path, cv2.IMREAD_UNCHANGED)
+            if mask.ndim == 3:
+                mask = mask[:, :, 0]
+            mask = (mask == 0).astype(np.float32)
+
 
             # Inject label noise
             if self.label_noise > 0:
