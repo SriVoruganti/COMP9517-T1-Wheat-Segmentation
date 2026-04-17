@@ -1,0 +1,128 @@
+{
+  "args": {
+    "data_root": "/content/drive/MyDrive/EWS-Dataset",
+    "model": "pretrained",
+    "output_dir": "./results/robustness_improvement",
+    "epochs": 40,
+    "batch_size": 8,
+    "lr": 0.0001,
+    "loss": "focal_dice",
+    "image_size": 350,
+    "num_workers": 2,
+    "seed": 42
+  },
+  "results": {
+    "baseline_no_aug": {
+      "clean": {
+        "precision": 0.9809,
+        "recall": 0.8165,
+        "f1": 0.8899,
+        "iou": 0.8034
+      },
+      "gaussian_noise_mild": {
+        "precision": 0.9496,
+        "recall": 0.8782,
+        "f1": 0.9115,
+        "iou": 0.838
+      },
+      "gaussian_noise_strong": {
+        "precision": 0.9161,
+        "recall": 0.8742,
+        "f1": 0.8935,
+        "iou": 0.8079
+      },
+      "blur_mild": {
+        "precision": 0.9787,
+        "recall": 0.8215,
+        "f1": 0.8922,
+        "iou": 0.8068
+      },
+      "blur_strong": {
+        "precision": 0.9653,
+        "recall": 0.8475,
+        "f1": 0.9016,
+        "iou": 0.822
+      },
+      "low_brightness": {
+        "precision": 0.8591,
+        "recall": 0.9608,
+        "f1": 0.9066,
+        "iou": 0.8292
+      },
+      "low_contrast": {
+        "precision": 0.9026,
+        "recall": 0.9322,
+        "f1": 0.9162,
+        "iou": 0.8455
+      },
+      "occlusion": {
+        "precision": 0.9274,
+        "recall": 0.8269,
+        "f1": 0.8735,
+        "iou": 0.7769
+      },
+      "jpeg_compression": {
+        "precision": 0.9422,
+        "recall": 0.704,
+        "f1": 0.7999,
+        "iou": 0.673
+      }
+    },
+    "hardened_full_aug": {
+      "clean": {
+        "precision": 0.9506,
+        "recall": 0.9257,
+        "f1": 0.9379,
+        "iou": 0.8833
+      },
+      "gaussian_noise_mild": {
+        "precision": 0.9064,
+        "recall": 0.9637,
+        "f1": 0.9341,
+        "iou": 0.8764
+      },
+      "gaussian_noise_strong": {
+        "precision": 0.8292,
+        "recall": 0.9835,
+        "f1": 0.8997,
+        "iou": 0.8178
+      },
+      "blur_mild": {
+        "precision": 0.9614,
+        "recall": 0.8866,
+        "f1": 0.9225,
+        "iou": 0.8563
+      },
+      "blur_strong": {
+        "precision": 0.9599,
+        "recall": 0.8633,
+        "f1": 0.909,
+        "iou": 0.8334
+      },
+      "low_brightness": {
+        "precision": 0.9165,
+        "recall": 0.9605,
+        "f1": 0.9379,
+        "iou": 0.8832
+      },
+      "low_contrast": {
+        "precision": 0.8379,
+        "recall": 0.9914,
+        "f1": 0.908,
+        "iou": 0.8317
+      },
+      "occlusion": {
+        "precision": 0.9211,
+        "recall": 0.8635,
+        "f1": 0.8913,
+        "iou": 0.804
+      },
+      "jpeg_compression": {
+        "precision": 0.9098,
+        "recall": 0.815,
+        "f1": 0.8584,
+        "iou": 0.754
+      }
+    }
+  }
+}

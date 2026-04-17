@@ -1,0 +1,105 @@
+{
+  "args": {
+    "data_root": "/content/drive/MyDrive/EWS-Dataset",
+    "model": "pretrained",
+    "output_dir": "./results/label_noise",
+    "epochs": 30,
+    "batch_size": 8,
+    "lr": 0.0001,
+    "image_size": 350,
+    "num_workers": 2,
+    "seed": 42
+  },
+  "results": {
+    "bce": {
+      "0%": {
+        "precision": 0.9668,
+        "recall": 0.8726,
+        "f1": 0.9172,
+        "iou": 0.8471,
+        "time_s": 104.1
+      },
+      "10%": {
+        "precision": 0.8632,
+        "recall": 0.8239,
+        "f1": 0.8424,
+        "iou": 0.728,
+        "time_s": 107.1
+      },
+      "20%": {
+        "precision": 0.7489,
+        "recall": 0.3917,
+        "f1": 0.5136,
+        "iou": 0.3456,
+        "time_s": 105.3
+      },
+      "30%": {
+        "precision": 0.8785,
+        "recall": 0.5475,
+        "f1": 0.6701,
+        "iou": 0.5077,
+        "time_s": 107.4
+      }
+    },
+    "focal_dice": {
+      "0%": {
+        "precision": 0.9478,
+        "recall": 0.9417,
+        "f1": 0.9447,
+        "iou": 0.8952,
+        "time_s": 104.0
+      },
+      "10%": {
+        "precision": 0.928,
+        "recall": 0.9497,
+        "f1": 0.9386,
+        "iou": 0.8844,
+        "time_s": 107.1
+      },
+      "20%": {
+        "precision": 1.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "iou": 0.0,
+        "time_s": 104.9
+      },
+      "30%": {
+        "precision": 0.9432,
+        "recall": 0.7861,
+        "f1": 0.8568,
+        "iou": 0.7501,
+        "time_s": 107.3
+      }
+    },
+    "tversky": {
+      "0%": {
+        "precision": 0.9639,
+        "recall": 0.8855,
+        "f1": 0.923,
+        "iou": 0.857,
+        "time_s": 103.6
+      },
+      "10%": {
+        "precision": 0.9427,
+        "recall": 0.9122,
+        "f1": 0.9271,
+        "iou": 0.8641,
+        "time_s": 107.5
+      },
+      "20%": {
+        "precision": 0.9791,
+        "recall": 0.3597,
+        "f1": 0.5206,
+        "iou": 0.3567,
+        "time_s": 104.5
+      },
+      "30%": {
+        "precision": 0.7045,
+        "recall": 0.974,
+        "f1": 0.8167,
+        "iou": 0.691,
+        "time_s": 107.4
+      }
+    }
+  }
+}
