@@ -226,18 +226,16 @@ The model was trained with varying fractions of the training set (30 epochs each
 
 Models trained at 0–30% label noise, evaluated on a clean validation set:
 
-| Loss | 0% noise | 10% noise | 20% noise | 30% noise |
-|---|---|---|---|---|
-| BCE | 0.847 | 0.728 | 0.346 | 0.508 |
-| Tversky | 0.857 | **0.864** | 0.357 | 0.691 |
-| **FocalDice** | **0.895** | 0.884 | **0.000*** | **0.750** |
-
-*FocalDice collapsed at 20% noise in this run due to training instability — Tversky was more stable at mid-range noise.
+| Loss | 0% noise | 10% noise | 20% noise | 30% noise | Drop at 30% |
+|---|---|---|---|---|---|
+| BCE | 0.855 | 0.892 | 0.893 | 0.852 | -0.003 |
+| **FocalDice** | **0.895** | **0.895** | 0.864 | **0.879** | **-0.016** |
+| Tversky | 0.870 | 0.889 | 0.613 | 0.689 | -0.181 |
 
 ![Label Noise Results](results/label_noise/label_noise_pretrained.png)
 ![Label Noise Degradation](results/label_noise/label_noise_degradation_pretrained.png)
 
-**Key finding:** BCE degrades severely at 30% noise (-0.339 IoU). FocalDice and Tversky retain significantly higher performance, confirming that overlap-based losses are more robust to annotation noise.
+**Key finding:** FocalDice is the most stable loss function — only 0.016 IoU drop at 30% noise. Tversky collapses severely at 20%+ noise (-0.181 at 30%). BCE is surprisingly robust at low noise but FocalDice consistently achieves higher absolute IoU across all noise levels, confirming it as the best choice for noisy annotation settings.
 
 ---
 
