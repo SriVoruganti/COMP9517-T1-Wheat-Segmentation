@@ -36,9 +36,9 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 
-# ---------------------------------------------------------------------------
+
 # Custom dataset that applies a distortion BEFORE the standard transform
-# ---------------------------------------------------------------------------
+
 
 class DistortedEWSDataset(EWSDataset):
     def __init__(self, root, split, distortion_fn, image_size=350):

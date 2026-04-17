@@ -11,9 +11,8 @@ import numpy as np
 from typing import Tuple
 
 
-# ---------------------------------------------------------------------------
+
 # Individual distortion functions
-# ---------------------------------------------------------------------------
 
 def apply_gaussian_noise(image: np.ndarray, var: float = 500.0) -> np.ndarray:
     """Add Gaussian noise to simulate sensor noise."""
@@ -62,9 +61,9 @@ def apply_jpeg_compression(image: np.ndarray, quality: int = 10) -> np.ndarray:
     return cv2.cvtColor(dec, cv2.COLOR_BGR2RGB).astype(np.float32)
 
 
-# ---------------------------------------------------------------------------
+
 # Distortion registry — used by robustness_eval.py
-# ---------------------------------------------------------------------------
+
 
 DISTORTIONS = {
     "clean": lambda img: img.copy(),

@@ -26,6 +26,7 @@ from models.unet import UNet
 from models.unet_pretrained import PretrainedUNet
 from utils.metrics import compute_all_metrics, aggregate_metrics
 from utils.tta import tta_predict
+from utils.postprocess import postprocess_batch, tune_postprocess
 from utils.visualise import (
     plot_prediction_grid,
     plot_failure_analysis,
@@ -34,9 +35,10 @@ from utils.visualise import (
 
 
 @torch.no_grad()
-def evaluate(model, loader, device, use_tta=False):
+def evaluate(model, loader, device, use_tta=False, use_postprocess=False,
+             pp_min_area=200, pp_close_kernel=5):
     model.eval()
-    batch_metrics  = []
+    batch_metrics   = []
     inference_times = []
 
     for images, masks in loader:
@@ -45,10 +47,16 @@ def evaluate(model, loader, device, use_tta=False):
 
         if use_tta:
             probs = tta_predict(model, images)
-            # Convert probability to pseudo-logit for metric functions
             preds = torch.log(probs.clamp(1e-6, 1 - 1e-6) / (1 - probs.clamp(1e-6, 1 - 1e-6)))
         else:
             preds = model(images)
+
+        if use_postprocess:
+            # Apply morphological cleanup to binary predictions, then re-encode as logits
+            probs_np = torch.sigmoid(preds).cpu().numpy()          # (B, 1, H, W)
+            pp_np    = postprocess_batch(probs_np, pp_min_area, pp_close_kernel)
+            pp_t     = torch.tensor(pp_np, device=device)
+            preds    = (pp_t * 20.0) - 10.0   # binary → pseudo-logit
 
         inference_times.append((time.time() - t0) / images.size(0))
         batch_metrics.append(compute_all_metrics(preds, masks))
@@ -70,6 +78,14 @@ def parse_args():
     parser.add_argument("--num_workers",      type=int,  default=2)
     parser.add_argument("--tta",              action="store_true",
                         help="Enable Test-Time Augmentation")
+    parser.add_argument("--postprocess",      action="store_true",
+                        help="Apply morphological post-processing (remove small FP regions, fill holes)")
+    parser.add_argument("--pp_min_area",      type=int,  default=200,
+                        help="Min connected-component area to keep (post-processing)")
+    parser.add_argument("--pp_close_kernel",  type=int,  default=5,
+                        help="Closing kernel size for hole-filling (post-processing)")
+    parser.add_argument("--tune_postprocess", action="store_true",
+                        help="Grid-search best post-processing params on val set before test eval")
     parser.add_argument("--visualise",        action="store_true",
                         help="Save prediction grid")
     parser.add_argument("--failure_analysis", action="store_true",
@@ -99,13 +115,39 @@ def main():
     model.load_state_dict(torch.load(args.checkpoint, map_location=device))
     print(f"Checkpoint: {args.checkpoint}")
 
-    # Evaluate (with and without TTA for comparison)
+    # Optionally tune post-processing params on val set first
+    pp_min_area    = args.pp_min_area
+    pp_close_kernel = args.pp_close_kernel
+    if args.tune_postprocess:
+        print("\nTuning post-processing parameters on validation set ...")
+        val_ds_pp  = EWSDataset(args.data_root, "val", get_val_transforms(args.image_size))
+        tune_result = tune_postprocess(model, val_ds_pp, device)
+        pp_min_area     = tune_result["best_min_area"]
+        pp_close_kernel = tune_result["best_close_kernel"]
+        print(f"  Best params: min_area={pp_min_area}, close_kernel={pp_close_kernel}"
+              f"  (val IoU={tune_result['best_iou']:.4f})")
+
+    # Evaluate — build result variants to compare
     metrics_no_tta = evaluate(model, test_loader, device, use_tta=False)
     results = {"no_tta": metrics_no_tta}
 
     if args.tta:
         metrics_tta = evaluate(model, test_loader, device, use_tta=True)
         results["tta"] = metrics_tta
+
+    if args.postprocess:
+        metrics_pp = evaluate(model, test_loader, device, use_tta=False,
+                              use_postprocess=True,
+                              pp_min_area=pp_min_area,
+                              pp_close_kernel=pp_close_kernel)
+        results["postprocess"] = metrics_pp
+
+    if args.tta and args.postprocess:
+        metrics_tta_pp = evaluate(model, test_loader, device, use_tta=True,
+                                  use_postprocess=True,
+                                  pp_min_area=pp_min_area,
+                                  pp_close_kernel=pp_close_kernel)
+        results["tta+postprocess"] = metrics_tta_pp
 
     # Print results
     print("\n" + "="*55)

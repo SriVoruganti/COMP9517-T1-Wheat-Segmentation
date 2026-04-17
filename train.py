@@ -28,9 +28,9 @@ from models.losses import get_loss
 from utils.metrics import compute_all_metrics, aggregate_metrics
 
 
-# ---------------------------------------------------------------------------
+
 # Training loop
-# ---------------------------------------------------------------------------
+
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -58,9 +58,9 @@ def validate(model, loader, criterion, device):
     return sum(losses) / len(losses), aggregate_metrics(batch_metrics)
 
 
-# ---------------------------------------------------------------------------
+
 # Main
-# ---------------------------------------------------------------------------
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -75,8 +75,10 @@ def parse_args():
     parser.add_argument("--lr",          type=float, default=1e-4)
     parser.add_argument("--loss",        type=str,   default="focal_dice",
                         choices=["combo", "focal_dice", "tversky", "focal", "dice", "bce"])
-    parser.add_argument("--dropout",     type=float, default=0.1,
+    parser.add_argument("--dropout",         type=float, default=0.1,
                         help="Dropout rate (vanilla U-Net only)")
+    parser.add_argument("--decoder_dropout", type=float, default=0.0,
+                        help="Decoder dropout rate (pretrained U-Net only; helps under data scarcity)")
     parser.add_argument("--two_phase",   action="store_true",
                         help="Use two-phase training for pretrained model")
     parser.add_argument("--phase1_epochs", type=int, default=15,
@@ -108,7 +110,8 @@ def main():
     # Model
     if args.model == "pretrained":
         model = PretrainedUNet(pretrained=True,
-                               freeze_encoder=args.two_phase).to(device)
+                               freeze_encoder=args.two_phase,
+                               decoder_dropout=args.decoder_dropout).to(device)
     else:
         model = UNet(dropout=args.dropout).to(device)
 

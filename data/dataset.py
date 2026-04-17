@@ -21,9 +21,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 
-# ===========================================================================
+
 # Shared Utility — Folder Preprocessing
-# ===========================================================================
 
 def preprocess_folders(root: str, split: str):
     """
@@ -63,6 +62,9 @@ def preprocess_folders(root: str, split: str):
 
 def _load_file_lists(root, split, subset_frac, seed):
     """Shared helper to load and optionally subset image/mask file lists."""
+    # Auto-organise flat EWS folder into images/ and masks/ subdirectories
+    preprocess_folders(root, split)
+
     image_dir = os.path.join(root, split, "images")
     mask_dir  = os.path.join(root, split, "masks")
 
@@ -82,9 +84,9 @@ def _load_file_lists(root, split, subset_frac, seed):
     return image_dir, mask_dir, images, masks
 
 
-# ===========================================================================
+
 # Deep Learning Dataset — PyTorch / U-Net
-# ===========================================================================
+
 
 class EWSDataset(Dataset):
     """
@@ -163,9 +165,9 @@ class EWSDataset(Dataset):
         return self.images[idx]
 
 
-# ===========================================================================
+
 # Classical ML Dataset — Random Forest / Pixel Features
-# ===========================================================================
+
 
 class EWSDatasetRF:
     """
@@ -268,9 +270,8 @@ class EWSDatasetRF:
         return len(self.image_files)
 
 
-# ===========================================================================
+
 # Augmentation Pipelines (for EWSDataset / U-Net)
-# ===========================================================================
 
 def get_train_transforms(image_size: int = 350) -> A.Compose:
     """Comprehensive augmentation pipeline for U-Net training."""
@@ -288,10 +289,10 @@ def get_train_transforms(image_size: int = 350) -> A.Compose:
         A.RandomGamma(gamma_limit=(80, 120), p=0.3),
         # Noise & blur
         A.GaussianBlur(blur_limit=(3, 7), p=0.3),
-        A.GaussNoise(var_limit=(10, 50), p=0.3),
+        A.GaussNoise(std_range=(0.01, 0.05), p=0.3),
         A.ISONoise(p=0.2),
         # Occlusion
-        A.CoarseDropout(max_holes=8, max_height=30, max_width=30, p=0.3),
+        A.CoarseDropout(num_holes_range=(1, 8), hole_height_range=(10, 30), hole_width_range=(10, 30), p=0.3),
         # Normalise to ImageNet stats
         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2(),

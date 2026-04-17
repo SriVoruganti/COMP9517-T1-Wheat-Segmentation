@@ -21,16 +21,21 @@ from torchvision.models import resnet34, ResNet34_Weights
 
 
 class ConvBnRelu(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int):
+    def __init__(self, in_ch: int, out_ch: int, dropout: float = 0.0):
         super().__init__()
-        self.block = nn.Sequential(
+        layers = [
             nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
+        ]
+        if dropout > 0.0:
+            layers.append(nn.Dropout2d(p=dropout))
+        layers += [
             nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
-        )
+        ]
+        self.block = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.block(x)
@@ -39,10 +44,10 @@ class ConvBnRelu(nn.Module):
 class DecoderBlock(nn.Module):
     """Upsample → concat skip → ConvBnRelu."""
 
-    def __init__(self, in_ch: int, skip_ch: int, out_ch: int):
+    def __init__(self, in_ch: int, skip_ch: int, out_ch: int, dropout: float = 0.0):
         super().__init__()
         self.up   = nn.ConvTranspose2d(in_ch, in_ch // 2, kernel_size=2, stride=2)
-        self.conv = ConvBnRelu(in_ch // 2 + skip_ch, out_ch)
+        self.conv = ConvBnRelu(in_ch // 2 + skip_ch, out_ch, dropout)
 
     def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
         x = self.up(x)
@@ -71,9 +76,10 @@ class PretrainedUNet(nn.Module):
 
     def __init__(
         self,
-        out_channels:   int  = 1,
-        pretrained:     bool = True,
-        freeze_encoder: bool = False,
+        out_channels:    int   = 1,
+        pretrained:      bool  = True,
+        freeze_encoder:  bool  = False,
+        decoder_dropout: float = 0.0,
     ):
         super().__init__()
 
@@ -93,11 +99,12 @@ class PretrainedUNet(nn.Module):
                           *self.enc2.parameters()]:
                 param.requires_grad = False
 
-        # ---- Decoder ----
-        self.dec4 = DecoderBlock(512, 256, 256)
-        self.dec3 = DecoderBlock(256, 128, 128)
-        self.dec2 = DecoderBlock(128, 64,  64)
-        self.dec1 = DecoderBlock(64,  64,  32)
+        # ---- Decoder (with optional dropout for regularisation under data scarcity) ----
+        d = decoder_dropout
+        self.dec4 = DecoderBlock(512, 256, 256, dropout=d)
+        self.dec3 = DecoderBlock(256, 128, 128, dropout=d)
+        self.dec2 = DecoderBlock(128, 64,  64,  dropout=d)
+        self.dec1 = DecoderBlock(64,  64,  32,  dropout=d)
 
         # Final upsample back to input resolution
         self.final_up   = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)
@@ -129,9 +136,9 @@ class PretrainedUNet(nn.Module):
             param.requires_grad = True
 
 
-# ---------------------------------------------------------------------------
+
 # Sanity check
-# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
     model = PretrainedUNet(pretrained=False)   # pretrained=False for offline check
     dummy = torch.randn(2, 3, 350, 350)
